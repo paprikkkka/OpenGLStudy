@@ -7,6 +7,9 @@ project(OpenGLStudy)
 #C++ver
 set(CMAKE_CXX_STANDARD 17)
 
+file(GLOB ASSETS "./Assets")
+file(COPY ${ASSETS} DESTINATION ${CMAKE_BINARY_DIR})
+
 #プロジェクトにマクロを追加
 #書き方：-D+マクロ名
 add_definitions(-DDEBUG)
@@ -24,6 +27,7 @@ link_directories(
 #インクルードdirectoryの下に書く必要がある、その上に書くと、インクルードパスが設定されていないため、インクルード失敗になる
 add_subdirectory(Wrapper)
 add_subdirectory(Application)
+add_subdirectory(GLFramWork)
 
 #ソースファイルを自動で取得
 #ルートフォルダ内cppファイルを取得
@@ -34,4 +38,4 @@ add_executable(glSutdy ${SRCS})
 
 #libをリンクする
 #エグゼビルド時サブフォルダを含むように
-target_link_libraries(glSutdy glfw3.lib wrapper app)
+target_link_libraries(glSutdy glfw3.lib wrapper app glfw)

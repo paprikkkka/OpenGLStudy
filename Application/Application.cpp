@@ -1,6 +1,5 @@
 #include "Application.h"
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+
 //#include "Wrapper/checkError.h"
 
 Application* Application::mInstance = nullptr;
@@ -46,6 +45,8 @@ bool Application::init(const int& width, const int& height) {
 
 	glfwSetFramebufferSizeCallback(mWindow, frameBufferSizeCallback);
 	glfwSetKeyCallback(mWindow, keyCallback);
+	glfwSetMouseButtonCallback(mWindow, mouseCallback);
+	glfwSetCursorPosCallback(mWindow, cursorCallback);
 
 	return true;
 }
@@ -81,4 +82,25 @@ void Application::keyCallback(GLFWwindow* window, int key, int scancode, int act
 	if (self->mKeyCallback != nullptr) {
 		self->mKeyCallback(key, action, mods);
 	}
+}
+
+
+void Application::mouseCallback(GLFWwindow* window, int button, int action, int mods) {
+	std::cout << "Mouse button: " << button << ", Action: " << action << ", Mods: " << mods << std::endl;
+	Application* self = (Application*)(glfwGetWindowUserPointer(window));
+	if (self->mMouseCallback != nullptr) {
+		self->mMouseCallback(button, action, mods);
+	}
+}
+void Application::cursorCallback(GLFWwindow* window, double xpos, double ypos) {
+	std::cout << "Cursor position: (" << xpos << ", " << ypos << ")" << std::endl;
+	Application* self = (Application*)(glfwGetWindowUserPointer(window));
+	if (self->mCursorCallback != nullptr) {
+		self->mCursorCallback(xpos, ypos);
+	}
+}
+
+
+void Application::getCursorPosition(double* xpos, double* ypos) {
+	glfwGetCursorPos(mWindow, xpos, ypos);
 }

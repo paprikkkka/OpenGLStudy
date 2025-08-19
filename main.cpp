@@ -1,14 +1,24 @@
-﻿#include <iostream>
-
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
-#include <string>
+﻿#include "GLFramWork/core.h"
+#include "GLFramWork/Shader.h"
 #include "Wrapper/checkError.h"
 #include "Application/Application.h"
+#include "GLFramWork/Texture.h"
 
-GLuint vao, program;
+#include "Application/Camera/perspectiveCamera.h"
+#include "Application/Camera/CameraControl.h"
+
+GLuint vao;
 bool swapBuffers = true;
+Shader* shader = nullptr;
+Texture* texturea = nullptr;
+Texture* textureb = nullptr;
+Texture* noiseTexture = nullptr;
+
+glm::mat4 transformMatrix = glm::mat4(1.0f);
+glm::mat4 viewMatrix = glm::mat4(1.0f);
+
+PerpectiveCamera* camera = nullptr;
+CameraControl* cameraControl = nullptr;
 
 float colorsA[] = {
     // Colors
@@ -31,30 +41,7 @@ void key_callback(int key, int action, int mods) {
     std::cout << "key: " << key << std::endl;
     std::cout << "action: " << action << std::endl;
     std::cout << "mods: " << mods << std::endl;
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-        if (swapBuffers) {
-
-            GLuint colorVBO = 0;
-            glCheckError(glGenBuffers(1, &colorVBO));
-            glCheckError(glBindBuffer(GL_ARRAY_BUFFER, colorVBO));
-            glCheckError(glBufferData(GL_ARRAY_BUFFER, sizeof(colorsA), colorsA, GL_STATIC_DRAW));
-            glCheckError(glEnableVertexAttribArray(1));
-            // 在VAO 1号位置记录颜色属性
-            glCheckError(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0));
-			swapBuffers = !swapBuffers;
-        }
-        else {
-
-            GLuint colorVBO = 0;
-            glCheckError(glGenBuffers(1, &colorVBO));
-            glCheckError(glBindBuffer(GL_ARRAY_BUFFER, colorVBO));
-            glCheckError(glBufferData(GL_ARRAY_BUFFER, sizeof(colorsB), colorsB, GL_STATIC_DRAW));
-            glCheckError(glEnableVertexAttribArray(1));
-            // 在VAO 1号位置记录颜色属性
-            glCheckError(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0));
-			swapBuffers = !swapBuffers;
-        }
-	}
+	cameraControl->onKey(key, action, mods);
 }
 
 void OnReSize(int width, int height) {
@@ -68,65 +55,22 @@ void OnReSize(int width, int height) {
     //glViewport(0, 0, height, width);
 }
 
+void onMouse(int button, int action, int mods) {
+    std::cout << "Mouse button: " << button << std::endl;
+    std::cout << "Mouse action: " << action << std::endl;
+    std::cout << "Mouse mods: " << mods << std::endl;
+	double xpos, ypos;
+	app->getCursorPosition(&xpos, &ypos);
+	cameraControl->onMouseButton(button, action, xpos, ypos);
+}
+
+void onCursor(double xpos, double ypos) {
+    std::cout << "Cursor position: (" << xpos << ", " << ypos << ")" << std::endl;
+	cameraControl->onCursor(xpos, ypos);
+}
 
 void prepareShader() {
-    const char* vertexShaderSource =
-        "#version 460 core\n"
-        "layout(location = 0) in vec3 aPos;\n"
-        "layout(location = 1) in vec3 aColor;\n"
-        "out vec3 color;\n"
-        "void main()\n"
-        "{\n"
-        "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-        "    color = aColor;"
-        "}\0";
-    const char* fragmentShaderSource =
-        "#version 460 core\n"
-        "out vec4 FragColor;\n"
-        "in vec3 color;\n"
-        "void main()\n"
-        "{\n"
-        "    FragColor = vec4(color, 1.0f);\n"
-        "}\0";
-
-    GLuint vertex, fragment;
-    vertex = glCheckError(glCreateShader(GL_VERTEX_SHADER));
-    fragment = glCheckError(glCreateShader(GL_FRAGMENT_SHADER));
-
-    glCheckError(glShaderSource(vertex, 1, &vertexShaderSource, NULL));
-    glCheckError(glShaderSource(fragment, 1, &fragmentShaderSource, NULL));
-
-    int success = 0;
-    glCheckError(glCompileShader(vertex));
-    glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        char infoLog[512];
-        glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-        std::cout << "error\n" << infoLog << std::endl;
-    }
-
-    glCheckError(glCompileShader(fragment));
-    glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        char infoLog[512];
-        glGetShaderInfoLog(fragment, 512, NULL, infoLog);
-        std::cout << "error\n" << infoLog << std::endl;
-    }
-
-	program = glCreateProgram();
-    glCheckError(glAttachShader(program, vertex));
-    glCheckError(glAttachShader(program, fragment));
-    glCheckError(glLinkProgram(program));
-    // 检查链接错误
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success) {
-        char infoLog[512];
-        glGetProgramInfoLog(program, 512, NULL, infoLog);
-        std::cout << "error\n" << infoLog << std::endl;
-    }
-    // 删除着色器对象
-    glCheckError(glDeleteShader(vertex));
-    glCheckError(glDeleteShader(fragment));
+	shader = new Shader("Assets/Shaders/vertex.glsl", "Assets/Shaders/fragment.glsl");
 }
 
 void prepareSingleBuffer() {
@@ -241,17 +185,28 @@ void prepareVAOForGLTriangles() {
 
 void prepareEBOForGLTriangles() {
     float vertices[] = {
-        // Positions
+        // 正方形的坐标
         -0.5f, -0.5f, 0.0f, // Bottom Left
          0.5f, -0.5f, 0.0f, // Bottom Right
-         0.0f,  0.5f, 0.0f,  // Top
-         0.5f,  0.5f, 0.0f  // Top Right
+        -0.5f,  0.5f, 0.0f,  // Top Left
+         0.5f,  0.5f, 0.0f // Top Right
     };
+
+    float uvs[] = {
+        // UV Coordinates
+        0.0f, 0.0f, // Bottom Left
+        1.0f, 0.0f, // Bottom Right
+        0.0f, 1.0f,  // Top Left
+        1.0f, 1.0f // Top Right
+	};
 
     unsigned int indices[] = {
         0, 1, 2, // First Triangle
         2, 1, 3  // Second Triangle
-	};
+    };
+    //unsigned int indices[] = {
+    //    0, 1, 2
+    //};
 
     float colors[] = {
         // Colors
@@ -270,6 +225,12 @@ void prepareEBOForGLTriangles() {
     glCheckError(glGenBuffers(1, &colorVBO));
     glCheckError(glBindBuffer(GL_ARRAY_BUFFER, colorVBO));
     glCheckError(glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW));
+
+    GLuint uvVBO = 0;
+    glCheckError(glGenBuffers(1, &uvVBO));
+    glCheckError(glBindBuffer(GL_ARRAY_BUFFER, uvVBO));
+    glCheckError(glBufferData(GL_ARRAY_BUFFER, sizeof(uvs), uvs, GL_STATIC_DRAW));
+
     // 创建EBO
 	// EBO是索引缓冲对象，记录顶点的索引
 
@@ -283,41 +244,104 @@ void prepareEBOForGLTriangles() {
 	// 绑定VAO
 	// 绑定VAO后，所有gl操作会默认记录到这个VAO中。
     glCheckError(glBindVertexArray(vao));
+
+    // 顶点坐标
     // 绑定想要记录到VAO的VBO
-    // interleavedVBO没有解绑无需绑定
     glCheckError(glBindBuffer(GL_ARRAY_BUFFER, interleavedVBO));
-    // 激活VAO的属性
+	// 激活VAO的0号位置属性
     glCheckError(glEnableVertexAttribArray(0));
     // 在VAO 0号位置记录顶点属性
     glCheckError(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0));
+
 	// 绑定颜色VBO
+    // 绑定想要记录到VAO的VBO
     glCheckError(glBindBuffer(GL_ARRAY_BUFFER, colorVBO));
-    // 激活颜色属性
+	// 激活vao的1号位置属性
     glCheckError(glEnableVertexAttribArray(1));
     // 在VAO 1号位置记录颜色属性
 	glCheckError(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0));
+
+    // 绑定uvVBO
+    // 绑定想要记录到VAO的VBO
+    glCheckError(glBindBuffer(GL_ARRAY_BUFFER, uvVBO));
+	// 激活vao的2号位置属性
+    glCheckError(glEnableVertexAttribArray(2));
+    // 在VAO 2号位置记录uv属性
+    glCheckError(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0));
     
 	// 绑定EBO
+	// ebo不需要绑定在属性，ebo跟VAO绑定
 	// 绑定VAO后，所有gl操作会默认记录到这个VAO中。所以ebo只绑定就够了
 	glCheckError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo));
+
     // 解绑VAO
     glCheckError(glBindVertexArray(0));
+
+
+    // 动态获取Shader中属性参照的是VAO那个位置
+    // 通常：
+    // 1. 创建VAO和shader时，指定顶点存在那个位置，比如0号位
+    // 2. shader中需要用location来指定从VAO的哪里获取数据
+    // 
+    // 动态获取的方式是：
+    // 1. 创建VAO时，通过下记代码获取当前shader中的变量使用的是VAO那个位置
+    // 2. 在VAO中记录顶点属性时，使用这个位置
+    // 
+    // GLuint posLocation = glGetAttribLocation(shader->getProgram(), "aPos");
+    // 
+    // 这个posLocation就是顶点属性在VAO中的位置
+    // 将顶点属性记录到VAO的posLocation的位置
+    // 
+    // glEnableVertexAttribArray(posLocation)
+    // glVertexAttribPointer(posLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0)
+    //
+    // 在不在shader中指定location时，默认分配的GLuint是根据定义从上到下从0开始的。
+
 }
+
+
+void prepareTexture() {
+    texturea = new Texture("Assets/Textures/testa.jpg", 0);
+ //   textureb = new Texture("Assets/Textures/soil.jpg", 1);
+	//noiseTexture = new Texture("Assets/Textures/noise.jpg", 2);
+}
+
 
 void render() {
     glCheckError(glClear(GL_COLOR_BUFFER_BIT));
 
     // 使用着色器程序
-    glCheckError(glUseProgram(program));
-
-	// 绑定VAO
+	shader->begin();
+    // 绑定VAO
     glCheckError(glBindVertexArray(vao));
+
+	//vs,fs中定义重名uni变量时，使用glGetUniformLocation会同时更改双方的值
+	//shader->setUniFloat("time", glfwGetTime());
+    shader->setUniInt("samplera", 0);
+    //shader->setUniInt("samplerb", 1);
+    //shader->setUniInt("samplerc", 2);
+    //shader->setUniFloat("width", texturea->getWidth());
+    //shader->setUniFloat("height", texturea->getHeight());
+    shader->setMatrix4x4("transform", transformMatrix);
+    shader->setMatrix4x4("viewMatrix", viewMatrix);
+
 
     // 绘制三角形
     //glCheckError(glDrawArrays(GL_TRIANGLE_STRIP, 0, 6));
 
 	glCheckError(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
+	glCheckError(glBindVertexArray(0));
+    shader->end();
+}
 
+void prepareCamera() {
+    camera = new PerpectiveCamera(
+        60.0f,
+        (float)app->getWidth() / (float)app->getHeight(),
+        0.1f,
+        1000.0f);
+	cameraControl = new CameraControl();
+	cameraControl->setCamera(camera);
 }
 
 int main(){
@@ -327,6 +351,8 @@ int main(){
     }
     app->setResizeCallback(OnReSize);
     app->setKeyCallback(key_callback);
+	app->setMouseCallback(onMouse);
+	app->setCursorCallback(onCursor);
 
 
 
@@ -335,14 +361,16 @@ int main(){
 
     prepareShader();
     prepareEBOForGLTriangles();
-
+    prepareTexture();
+    prepareCamera();
 
     while (app->update()) {
-
-		 render();
+		cameraControl->update();
+		render();
 
     }
-
+    delete texturea;
+    delete textureb;
     app->destroy();
     std::cout << "Window closed successfully." << std::endl;
     return 0;
