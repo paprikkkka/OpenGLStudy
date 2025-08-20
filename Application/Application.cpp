@@ -24,7 +24,6 @@ bool Application::init(const int& width, const int& height) {
 	mHeight = height;
 
 	glfwInit();
-
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -43,10 +42,13 @@ bool Application::init(const int& width, const int& height) {
 
 	std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
 
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	glfwSetFramebufferSizeCallback(mWindow, frameBufferSizeCallback);
 	glfwSetKeyCallback(mWindow, keyCallback);
 	glfwSetMouseButtonCallback(mWindow, mouseCallback);
 	glfwSetCursorPosCallback(mWindow, cursorCallback);
+	glfwSetScrollCallback(mWindow, scrollCallback);
 
 	return true;
 }
@@ -92,11 +94,20 @@ void Application::mouseCallback(GLFWwindow* window, int button, int action, int 
 		self->mMouseCallback(button, action, mods);
 	}
 }
+
 void Application::cursorCallback(GLFWwindow* window, double xpos, double ypos) {
 	std::cout << "Cursor position: (" << xpos << ", " << ypos << ")" << std::endl;
 	Application* self = (Application*)(glfwGetWindowUserPointer(window));
 	if (self->mCursorCallback != nullptr) {
 		self->mCursorCallback(xpos, ypos);
+	}
+}
+
+void Application::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+	std::cout << "Scroll offset: (" << xoffset << ", " << yoffset << ")" << std::endl;
+	Application* self = (Application*)(glfwGetWindowUserPointer(window));
+	if (self->mScrollCallback != nullptr) {
+		self->mScrollCallback(yoffset);
 	}
 }
 

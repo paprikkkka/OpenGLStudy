@@ -9,6 +9,7 @@ using ResizeCallback = void(*)(int width, int height);
 using KeyCallback = void(*)(int key, int action, int mods);
 using MouseCallback = void(*)(int button, int action, int mods);
 using CursorCallback = void(*)(double xpos, double ypos);
+using ScrollCallback = void(*)(double yoffset);
 
 class Application {
 public:
@@ -28,6 +29,7 @@ public:
 	void setKeyCallback(KeyCallback callback) { mKeyCallback = callback; }
 	void setMouseCallback(MouseCallback callback) { mMouseCallback = callback; }
 	void setCursorCallback(CursorCallback callback) { mCursorCallback = callback; }
+	void setScrollCallback(ScrollCallback callback) { mScrollCallback = callback; }
 
 private:
 	Application();
@@ -41,10 +43,12 @@ private:
 	KeyCallback mKeyCallback{ nullptr };
 	MouseCallback mMouseCallback{ nullptr };
 	CursorCallback mCursorCallback{ nullptr };
+	ScrollCallback mScrollCallback{ nullptr };
 
 private:
 	static void frameBufferSizeCallback(GLFWwindow* window, int width, int height);
 	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 	static void mouseCallback(GLFWwindow* window, int button, int action, int mods);
 	static void cursorCallback(GLFWwindow* window, double xpos, double ypos);
+	static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 };

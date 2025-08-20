@@ -8,6 +8,7 @@ public:
 	~OrthographicCamera();
 
 	glm::mat4 getProjectionMatrix() override;
+	void scale(float scale) override;
 private:
 	float mLeft{ 0.0f };
 	float mRight{ 0.0f };
@@ -16,4 +17,5 @@ private:
 	float mNear{ 0.0f };
 	float mFar{ 0.0f };
 
+	float mScale{ 0.0f };
 };

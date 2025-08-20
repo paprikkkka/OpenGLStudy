@@ -8,6 +8,7 @@ public:
 	~PerpectiveCamera();
 	glm::mat4 getProjectionMatrix() override;
 
+	void scale(float scale) override;
 private:
 	float mFov = 0.0f;
 	float mAspect = 0.0f;

@@ -10,6 +10,7 @@ out vec2 texCoord;
 
 uniform mat4 transform;
 uniform mat4 viewMatrix;
+uniform mat4 projectionMatrix;
 
 void main()
 {
@@ -17,7 +18,7 @@ void main()
     //float scale = 1 / time;
     //vec3 sPos = aPos * scale;
     vec4 position = vec4(aPos, 1.0);
-    position = viewMatrix * transform * position;
+    position =projectionMatrix * viewMatrix * transform * position;
 
     gl_Position = position;
     color = aColor;

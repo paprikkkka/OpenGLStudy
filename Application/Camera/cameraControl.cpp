@@ -41,3 +41,7 @@ void CameraControl::onMouseButton(int button, int action, double xpos, double yp
 void CameraControl::onCursor(double xpos, double ypos) {
 
 }
+
+void CameraControl::onScroll(float offset) {
+
+}

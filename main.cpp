@@ -5,20 +5,58 @@
 #include "GLFramWork/Texture.h"
 
 #include "Application/Camera/perspectiveCamera.h"
-#include "Application/Camera/CameraControl.h"
+#include "Application/Camera/orthigraphicCamera.h"
 
-GLuint vao;
-bool swapBuffers = true;
+#include "Geometry/Model.h"
+
+Model* model = nullptr;
 Shader* shader = nullptr;
 Texture* texturea = nullptr;
 Texture* textureb = nullptr;
 Texture* noiseTexture = nullptr;
 
-glm::mat4 transformMatrix = glm::mat4(1.0f);
-glm::mat4 viewMatrix = glm::mat4(1.0f);
+glm::mat4 transforma = glm::mat4(1.0f);
+glm::mat4 transformb = glm::mat4(1.0f);
 
+
+#ifdef PERSPECTIVE
 PerpectiveCamera* camera = nullptr;
-CameraControl* cameraControl = nullptr;
+void initCamera() {
+    // 创建透视投影相机
+    camera = new PerpectiveCamera(
+        60.0f,
+        (float)app->getWidth() / (float)app->getHeight(),
+        0.1f,
+        1000.0f
+    );
+}
+#else
+OrthographicCamera* camera = nullptr;
+void initCamera() {
+    // 创建正交投影相机
+    float size = 8.0f; // 正交投影的大小
+    camera = new OrthographicCamera(
+        -size, size, // 左右边界
+        size, -size, // 上下边界
+        size, -size // 近远裁剪面
+    );
+}
+#endif
+
+#ifdef TRACKBOLL
+#include "Application/Camera/trackBallCameraControl.h"
+TrackBollCameracontrol* cameraControl = nullptr;
+void initCameraControl() {
+    cameraControl = new TrackBollCameracontrol();
+}
+#else
+#include "Application/Camera/gameCameraControl.h"
+GameCameraControl* cameraControl = nullptr;
+void initCameraControl() {
+    cameraControl = new GameCameraControl();
+}
+#endif
+
 
 float colorsA[] = {
     // Colors
@@ -41,7 +79,20 @@ void key_callback(int key, int action, int mods) {
     std::cout << "key: " << key << std::endl;
     std::cout << "action: " << action << std::endl;
     std::cout << "mods: " << mods << std::endl;
+    if (cameraControl == nullptr) {
+        std::cerr << "Camera control is not initialized." << std::endl;
+        return;
+    }
 	cameraControl->onKey(key, action, mods);
+}
+
+void onScroll(double yoffset) {
+    std::cout << "Scroll offset: " << yoffset << std::endl;
+    if (cameraControl == nullptr) {
+        std::cerr << "Camera control is not initialized." << std::endl;
+        return;
+    }
+    cameraControl->onScroll(static_cast<float>(yoffset));
 }
 
 void OnReSize(int width, int height) {
@@ -59,6 +110,10 @@ void onMouse(int button, int action, int mods) {
     std::cout << "Mouse button: " << button << std::endl;
     std::cout << "Mouse action: " << action << std::endl;
     std::cout << "Mouse mods: " << mods << std::endl;
+    if (cameraControl == nullptr) {
+        std::cerr << "Camera control is not initialized." << std::endl;
+        return;
+    }
 	double xpos, ypos;
 	app->getCursorPosition(&xpos, &ypos);
 	cameraControl->onMouseButton(button, action, xpos, ypos);
@@ -66,13 +121,17 @@ void onMouse(int button, int action, int mods) {
 
 void onCursor(double xpos, double ypos) {
     std::cout << "Cursor position: (" << xpos << ", " << ypos << ")" << std::endl;
+    if (cameraControl == nullptr) {
+        std::cerr << "Camera control is not initialized." << std::endl;
+        return;
+	}
 	cameraControl->onCursor(xpos, ypos);
 }
 
 void prepareShader() {
 	shader = new Shader("Assets/Shaders/vertex.glsl", "Assets/Shaders/fragment.glsl");
 }
-
+/*
 void prepareSingleBuffer() {
     float vertices[] = {
         // Positions
@@ -298,54 +357,44 @@ void prepareEBOForGLTriangles() {
     // 在不在shader中指定location时，默认分配的GLuint是根据定义从上到下从0开始的。
 
 }
-
+*/
 
 void prepareTexture() {
     texturea = new Texture("Assets/Textures/testa.jpg", 0);
- //   textureb = new Texture("Assets/Textures/soil.jpg", 1);
+    textureb = new Texture("Assets/Textures/test.jpg", 0);
 	//noiseTexture = new Texture("Assets/Textures/noise.jpg", 2);
 }
 
 
 void render() {
-    glCheckError(glClear(GL_COLOR_BUFFER_BIT));
+    glCheckError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
     // 使用着色器程序
 	shader->begin();
     // 绑定VAO
-    glCheckError(glBindVertexArray(vao));
+    glCheckError(glBindVertexArray(model->getVAO()));
 
 	//vs,fs中定义重名uni变量时，使用glGetUniformLocation会同时更改双方的值
 	//shader->setUniFloat("time", glfwGetTime());
     shader->setUniInt("samplera", 0);
-    //shader->setUniInt("samplerb", 1);
-    //shader->setUniInt("samplerc", 2);
-    //shader->setUniFloat("width", texturea->getWidth());
-    //shader->setUniFloat("height", texturea->getHeight());
-    shader->setMatrix4x4("transform", transformMatrix);
-    shader->setMatrix4x4("viewMatrix", viewMatrix);
+	shader->setMatrix4x4("transform", transforma);
+    shader->setMatrix4x4("viewMatrix", camera->getViewMatrix());
+    shader->setMatrix4x4("projectionMatrix", camera->getProjectionMatrix());
 
-
-    // 绘制三角形
-    //glCheckError(glDrawArrays(GL_TRIANGLE_STRIP, 0, 6));
-
-	glCheckError(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
+    textureb->bind();
+    glCheckError(glDrawElements(GL_TRIANGLES, model->getIndices(), GL_UNSIGNED_INT, 0));
 	glCheckError(glBindVertexArray(0));
     shader->end();
 }
 
+
 void prepareCamera() {
-    camera = new PerpectiveCamera(
-        60.0f,
-        (float)app->getWidth() / (float)app->getHeight(),
-        0.1f,
-        1000.0f);
-	cameraControl = new CameraControl();
-	cameraControl->setCamera(camera);
+    initCamera();
+    initCameraControl();
+    cameraControl->setCamera(camera);
 }
 
 int main(){
-
     if (!app->init(800, 600)) {
         return -1;
     }
@@ -353,14 +402,16 @@ int main(){
     app->setKeyCallback(key_callback);
 	app->setMouseCallback(onMouse);
 	app->setCursorCallback(onCursor);
-
+	app->setScrollCallback(onScroll);
+    model = Model::createBox(2.0f);
 
 
     glCheckError(glViewport(0, 0, 800, 600));
-    glCheckError(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+    glCheckError(glClearColor(0.2f, 0.2f, 0.2f, 1.0f));
+	glCheckError(glClearDepth(1.0f));
 
     prepareShader();
-    prepareEBOForGLTriangles();
+    //prepareEBOForGLTriangles();
     prepareTexture();
     prepareCamera();
 

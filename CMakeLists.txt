@@ -14,6 +14,9 @@ file(COPY ${ASSETS} DESTINATION ${CMAKE_BINARY_DIR})
 #書き方：-D+マクロ名
 add_definitions(-DDEBUG)
 
+add_definitions(-DPERSPECTIVE)
+add_definitions(-DTRACKBOLL)
+
 #インクルードディレクトリを追加
 include_directories(
 	SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/include
@@ -28,6 +31,7 @@ link_directories(
 add_subdirectory(Wrapper)
 add_subdirectory(Application)
 add_subdirectory(GLFramWork)
+add_subdirectory(Geometry)
 
 #ソースファイルを自動で取得
 #ルートフォルダ内cppファイルを取得
@@ -38,4 +42,4 @@ add_executable(glSutdy ${SRCS})
 
 #libをリンクする
 #エグゼビルド時サブフォルダを含むように
-target_link_libraries(glSutdy glfw3.lib wrapper app glfw)
+target_link_libraries(glSutdy glfw3.lib wrapper app glfw geometry)

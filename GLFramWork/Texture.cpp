@@ -21,25 +21,25 @@ Texture::Texture(const std::string& path, unsigned int unit) {
 	glCheckError(glBindTexture(GL_TEXTURE_2D, mTexture));
 
 	// 传输纹理数据到GPU
-	//glCheckError(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mWidth, mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
-	int width = mWidth;
-	int height = mHeight;
-	for (int level = 0; true; ++level) {
-		glCheckError(glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
+	glCheckError(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mWidth, mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
+	//int width = mWidth;
+	//int height = mHeight;
+	//for (int level = 0; true; ++level) {
+	//	glCheckError(glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
 
-		if (width == 1 && height == 1) {
-			break; // 如果纹理已经缩小到1x1，停止生成mipmap
-		}
-		// 计算下一层的宽度和高度
-		width = width > 1 ? width / 2 : 1;
-		height = height > 1 ? height / 2 : 1;
-	}
+	//	if (width == 1 && height == 1) {
+	//		break; // 如果纹理已经缩小到1x1，停止生成mipmap
+	//	}
+	//	// 计算下一层的宽度和高度
+	//	width = width > 1 ? width / 2 : 1;
+	//	height = height > 1 ? height / 2 : 1;
+	//}
 
 	stbi_image_free(data);
 
 	// 设置纹理参数
 	glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-	//glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+	glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 	glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
 	glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
 }
