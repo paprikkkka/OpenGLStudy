@@ -53,5 +53,5 @@ Texture::~Texture() {
 void Texture::bind() {
 	glCheckError(glActiveTexture(GL_TEXTURE0 + mTextureID));
 	glCheckError(glBindTexture(GL_TEXTURE_2D, mTexture));
-	std::cout << "Texture bound to unit: " << mTextureID << std::endl;
+	//std::cout << "Texture bound to unit: " << mTextureID << std::endl;
 }

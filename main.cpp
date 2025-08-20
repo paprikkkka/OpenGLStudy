@@ -403,7 +403,7 @@ int main(){
 	app->setMouseCallback(onMouse);
 	app->setCursorCallback(onCursor);
 	app->setScrollCallback(onScroll);
-    model = Model::createBox(2.0f);
+    model = Model::createSphere(2.0f);
 
 
     glCheckError(glViewport(0, 0, 800, 600));

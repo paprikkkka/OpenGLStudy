@@ -1,6 +1,6 @@
 #include "Model.h"
 #include "../Wrapper/checkError.h"
-
+#include <vector>
 
 
 
@@ -133,8 +133,72 @@ Model* Model::createBox(float size) {
     
 }
 
-Model* Model::createSphere(float size) {
+Model* Model::createSphere(float radius) {
 	Model* model = new Model();
+
+    std::vector<GLfloat> positions{};
+    std::vector<GLfloat> uvs{};
+    std::vector<GLuint> indices{};
+
+	int unmLatLins = 60;
+	int unmLonLines = 60;
+
+    for (int i = 0; i <= unmLatLins; i++) {
+        for(int j = 0; j <= unmLonLines; j++) {
+            float phi = i * glm::pi<float>() / unmLatLins;
+            float theta = j * 2.0f * glm::pi<float>() / unmLonLines;
+            float x = radius * sin(phi) * cos(theta);
+            float y = radius * cos(phi);
+            float z = radius * sin(phi) * sin(theta);
+            positions.push_back(x);
+            positions.push_back(y);
+            positions.push_back(z);
+            uvs.push_back(1.0 - (float)j / unmLonLines);
+            uvs.push_back(1.0 - (float)i / unmLatLins);
+		}
+    }
+
+    for (int i = 0; i < unmLatLins; i++) {
+        for (int j = 0; j < unmLonLines; j++) {
+			int p1 = i * (unmLonLines + 1) + j;
+			int p2 = p1 + unmLonLines + 1;
+			int p3 = p1 + 1;
+			int p4 = p2 + 1;
+
+			indices.push_back(p1);
+			indices.push_back(p2);
+			indices.push_back(p3);
+
+			indices.push_back(p3);
+			indices.push_back(p2);
+			indices.push_back(p4);
+        }
+    }
+
+    model->mIndices = indices.size();
+
+    // VBO, VAO, UVVBO¶¬
+    glCheckError(glGenVertexArrays(1, &model->mVAO));
+    glCheckError(glBindVertexArray(model->mVAO));
+
+    glCheckError(glGenBuffers(1, &model->mVBO));
+    glCheckError(glBindBuffer(GL_ARRAY_BUFFER, model->mVBO));
+    glCheckError(glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(float), positions.data(), GL_STATIC_DRAW));
+    glCheckError(glEnableVertexAttribArray(0));
+    glCheckError(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0));
+
+    glCheckError(glGenBuffers(1, &model->mUvVBO));
+    glCheckError(glBindBuffer(GL_ARRAY_BUFFER, model->mUvVBO));
+
+    glCheckError(glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(float), uvs.data(), GL_STATIC_DRAW));
+    glCheckError(glEnableVertexAttribArray(2));
+    glCheckError(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0));
+
+    glCheckError(glGenBuffers(1, &model->mEBO));
+    glCheckError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->mEBO));
+    glCheckError(glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() *sizeof(GLuint), indices.data(), GL_STATIC_DRAW));
+
+    glCheckError(glBindVertexArray(0));
 
 	return model;
 

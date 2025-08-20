@@ -9,7 +9,6 @@ public:
 	Model();
 	~Model();
 	void draw();
-	void setTransform(const glm::mat4& transform);
 	const glm::mat4& getTransform() const { return mTransform; };
 
 	GLuint getVAO() const { return mVAO; }
@@ -18,7 +17,7 @@ public:
 
 public:
 	static Model* createBox(float size);
-	static Model* createSphere(float size);
+	static Model* createSphere(float radius);
 
 private:
 	GLuint mVAO{ 0 };
